@@ -322,42 +322,70 @@ void initializeNetwork(){
 	}
 }
 
-void updateRecords(){
-	for(int i=0;i<datavec.size();i++){
-		auto missing_node=Alarm.get_nth_node(stoi(datavec[i][datavec.size()-2]));
-		vector<string> child_nodes;
-		vector<int> child_class;
-		for(auto k: missing_node->get_children()){
-			child_nodes.push_back(datavec[i][k]);
-			auto child_values=Alarm.get_nth_node(k)->get_values();
-			for(int j=0;j<child_values.size();j++){
-				if(datavec[i][k]==child_values[j]){
-					child_class.push_back(j);
-				}
-			}
-
-		}
-
-		vector<float> CPT_node=missing_node->get_CPT();
-		vector <vector<float>> CPT_childs;
-		for(auto k: missing_node->get_children()){
-			CPT_childs.push_back(Alarm.get_nth_node(k)->get_CPT());
-		}
-
-		vector <double> weights;
-		for(int k=0;k<missing_node->get_nvalues();k++){
-			int offset=0;
-			for(auto j: missing_node->get_children()){
-				offset+=
-			}
-		}
-
-
-
-
-	}
-
+void updateNetwork(){
 	
+}
+
+
+int find_index(vector<string> vec, string sought){
+ for(int i=0;i<vec.size();i++){
+	if(vec[i]==sought){
+		return i;
+	}
+ }
+ return 0;
+}
+
+int get_offset(int index, vector<string> data){
+	auto node_iter=Alarm.get_nth_node(index);
+	auto node_val=find_index(node_iter->get_values(),data[index]);
+	vector<string> Par_of_node=node_iter->get_Parents();
+	vector <list<Graph_Node>::iterator> Par_iter;
+	vector<int> par_val;
+	for(auto i:Par_of_node){
+		Par_iter.push_back(Alarm.search_node(i));
+		par_val.push_back(find_index(Alarm.search_node(i)->get_values(),data[index]));
+	}
+	
+	int offset=0;
+	for(int i=0;i<Par_iter.size();i++){
+		int temp=par_val[i];
+		for(int j=i+1;j<Par_iter.size();j++)
+			temp*=Par_iter[j]->get_nvalues();
+		offset+=temp;
+	}
+	float temp=node_val;
+	for(int i=0;i<Par_iter.size();i++){
+		temp*=Par_iter[i]->get_nvalues();
+	}
+	offset+=temp;
+	return offset;
+}
+
+
+
+
+void updateRecords(){
+	auto updated_data=datavec;
+	for(int i=0;i<datavec.size();i++){
+		auto missing_node_iter=Alarm.get_nth_node(stoi(datavec[i][datavec.size()-2]));
+		vector <list<Graph_Node>::iterator> child_nodes_iter;
+		vector<int> child_class;
+		for(auto k: missing_node_iter->get_children()){
+			child_nodes_iter.push_back(Alarm.get_nth_node(k));
+		}
+		for(int j=0;j<missing_node_iter->get_values().size();j++){
+			vector<string> temp_data=datavec[i];
+			temp_data[stoi(datavec[i][datavec.size()-2])]=missing_node_iter->get_values()[j];
+			float weight=missing_node_iter->get_CPT()[get_offset(stoi(datavec[i][datavec.size()-2]),temp_data)];
+			for(int k=0;k<child_nodes_iter.size();k++){
+				weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],temp_data)];
+			}
+			temp_data[temp_data.size()-1]=to_string(weight);
+			updated_data.push_back(temp_data);
+		}
+		updated_data.erase(updated_data.begin()+i);
+	}
 
 }
 
