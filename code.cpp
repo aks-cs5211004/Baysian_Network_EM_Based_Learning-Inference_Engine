@@ -5,6 +5,20 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <time.h>
+#include <random>
+#include <climits>
+#include <chrono>
+#include <stdio.h>
+#include <float.h>
+#include <limits.h>
+#include <iomanip>
+#include <map>
+using namespace std::chrono;
+using namespace std;
 
 
 // Format checker just assumes you have Alarm.bif and Solved_Alarm.bif (your file) in current directory
@@ -259,13 +273,30 @@ network read_network()
 
 
 
+
 class Solve{
 
-public:
-vector <vector<string>> datavec_init;
+private:
 vector <vector<string>> datavec;
+vector <vector<string>> updated_data;
+vector <vector<float>> currCPT;
 network Alarm;
 
+public:
+
+Solve(){
+	auto exec_time_start= high_resolution_clock::now();
+	Alarm=read_network();
+	datavec.resize(0);
+	updated_data.resize(0);	
+	currCPT.resize(0);
+	readRecord();
+	updateNetwork();writeNetwork();Alarm=read_network();
+	while(119*1000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count()){
+		updateRecords();
+		updateNetwork();writeNetwork();Alarm=read_network();
+	}
+}
 
 void readRecord(){
 	ifstream datafile("records.dat");
@@ -298,32 +329,48 @@ void readRecord(){
 			ss.clear();
 		}
 	// Print read data
-	datavec_init=datavec;
+	copy(datavec.begin(), datavec.end(), back_inserter(updated_data));  
 	for(int i=0;i<datavec.size();i++){
 		for(auto j: datavec[i]){
-			cout<<j;
+			cout<<j<<" ";
 		}
+		cout<<endl;
 	}
+	}
+	else{
+		cout<<"Record File not found"<<endl;
 	}
 }
 
-void initializeNetwork(){
-	for(int i=0;i<Alarm.netSize();i++){
-			auto this_node=Alarm.get_nth_node(i);
-			auto this_node_values=this_node->get_values();
-			vector <vector<string>> child_values;
-			for(auto k: this_node->get_children()){
-				auto child_node=Alarm.get_nth_node(k);
-				child_values.push_back(child_node->get_values());
-			}
 
-			for(auto )
-			
-	}
-}
+
 
 void updateNetwork(){
-	
+	currCPT.clear();
+	for(int i=0;i<Alarm.netSize();i++){
+		auto node=Alarm.get_nth_node(i);
+		vector<float> temp_CPT(node->get_CPT().size(),0);
+		// Count
+		for(int k=0;k<updated_data.size();k++){
+				temp_CPT[get_offset(i,updated_data[k])]+=stoi(updated_data[k].back());
+			}
+		// Laplace Smoothing
+		for(int k=0;k<temp_CPT.size();k++){
+			temp_CPT[k]+=1;
+		}
+		// Calc Norm coeff
+		vector<float> norm_coeff((int)(node->get_CPT().size()/node->get_values().size()),0);
+		for(int k=0;k<temp_CPT.size();k++){
+			norm_coeff[(int)(k%(node->get_CPT().size()/node->get_values().size()))]+=temp_CPT[k];
+		}
+		// Normalize
+		for(int k=0;k<temp_CPT.size();k++){
+			temp_CPT[k]=temp_CPT[k]/(norm_coeff[(int)(k%(node->get_CPT().size()/node->get_values().size()))]);
+		}
+		// Set CPT
+		node->set_CPT(temp_CPT);
+		currCPT.push_back(temp_CPT);
+	}
 }
 
 
@@ -336,9 +383,16 @@ int find_index(vector<string> vec, string sought){
  return 0;
 }
 
+
+
+// Check!!
 int get_offset(int index, vector<string> data){
 	auto node_iter=Alarm.get_nth_node(index);
-	auto node_val=find_index(node_iter->get_values(),data[index]);
+	int node_val;
+	if(data[index]!="\"?\"")
+		node_val=find_index(node_iter->get_values(),data[index]);
+	else
+		node_val=0;
 	vector<string> Par_of_node=node_iter->get_Parents();
 	vector <list<Graph_Node>::iterator> Par_iter;
 	vector<int> par_val;
@@ -366,7 +420,8 @@ int get_offset(int index, vector<string> data){
 
 
 void updateRecords(){
-	auto updated_data=datavec;
+	updated_data.clear();
+	copy(datavec.begin(), datavec.end(), back_inserter(updated_data));  
 	for(int i=0;i<datavec.size();i++){
 		auto missing_node_iter=Alarm.get_nth_node(stoi(datavec[i][datavec.size()-2]));
 		vector <list<Graph_Node>::iterator> child_nodes_iter;
@@ -389,35 +444,17 @@ void updateRecords(){
 
 }
 
-Solve(){
-	Alarm=read_network();
-	datavec_init.resize(0);
-	datavec.resize(0);
-	initializeNetwork();
-	while(true){
-		updateRecords();
-		updateNetwork();
-	}
+
+void writeNetwork(){
+	
 }
 
-// void initializeNetwork(){
 
-// }
-// void updateNetwork(){
-
-// }
-// void updateRecords(){
-	
-// }
 };
 
 int main()
 {
-	
-    
-// Example: to do something
-
-
+	Solve();
 	cout<<"Perfect! Hurrah! \n";
 	
 }
