@@ -417,7 +417,7 @@ public:
 	{
 		string line;
 		ifstream inputFile("alarm.bif");
-		ofstream outputFile("solved_alarm.bif")
+		ofstream outputFile("solved_alarm.bif");
 		string temp;
 		string name;
 		vector<string> values;
