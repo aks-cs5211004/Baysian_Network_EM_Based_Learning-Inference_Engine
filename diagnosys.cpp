@@ -13,7 +13,6 @@
 #include <climits>
 #include <chrono>
 #include <stdio.h>
-#include <float.h>
 #include <limits.h>
 #include <iomanip>
 #include <map>
@@ -29,7 +28,7 @@ private:
 	vector<string> Parents; // Parents of a particular node- note these are names of parents
 	int nvalues;  // Number of categories a variable represented by this node can take
 	vector<string> values; // Categories of possible values
-	vector<float> CPT; // conditional probability table as a 1-d array . Look for BIF format to understand its meaning
+	vector<double> CPT; // conditional probability table as a 1-d array . Look for BIF format to understand its meaning
 
 public:
 	// Constructor- a node is initialised with its name and its categories
@@ -55,7 +54,7 @@ public:
 		return Parents;
 	}
 
-	vector<float> get_CPT()
+	vector<double> get_CPT()
 	{
 		return CPT;
 	}
@@ -70,7 +69,7 @@ public:
 		return values;
 	}
 
-	void set_CPT(vector<float> new_CPT)
+	void set_CPT(vector<double> new_CPT)
 	{
 		CPT.clear();
 		CPT=new_CPT;
@@ -223,7 +222,7 @@ network read_network()
      		    ss2>> temp;
      		    ss2>> temp;
 
-     		    vector<float> curr_CPT;
+     		    vector<double> curr_CPT;
                 string::size_type sz;
      		    while(temp.compare(";")!=0)
      		    {
@@ -251,7 +250,7 @@ class Solve
 private:
 	vector <vector<string>> datavec;
 	vector <vector<string>> updated_data;
-	vector <vector<float>> currCPT;
+	vector <vector<double>> currCPT;
 	network Alarm;
 
 public:
@@ -261,13 +260,13 @@ public:
 		auto exec_time_start= high_resolution_clock::now();
 		Alarm=read_network();
 		readRecord();
-		// updateNetwork();
-		// while(119*1000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
-		// {
-		// 	updateRecords();
-		// 	updateNetwork();
-		// }
-		// writeNetwork();
+		updateNetwork();
+		while(2*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
+		{
+			updateRecords();
+			updateNetwork();
+		}
+		writeNetwork();
 	}
 
 	void readRecord()
@@ -321,7 +320,7 @@ public:
 		for(int i=0;i<Alarm.netSize();i++)
 		{
 			auto node=Alarm.get_nth_node(i);
-			vector<float> temp_CPT(node->get_CPT().size(),0);
+			vector<double> temp_CPT(node->get_CPT().size(),0);
 
 			// Count
 			for(int k=0; k<updated_data.size(); k++)
@@ -333,7 +332,7 @@ public:
 
 			// Calc Norm coeff
 			int norm_size = (node->get_CPT().size())/(node->get_values().size());
-			vector<float> norm_coeff(norm_size,0);
+			vector<double> norm_coeff(norm_size,0);
 			for(int k=0; k<temp_CPT.size(); k++)
 				norm_coeff[k%norm_size] += temp_CPT[k];
 
@@ -382,7 +381,7 @@ public:
 				temp*=Par_iter[j]->get_nvalues();
 			offset+=temp;
 		}
-		float temp=node_val;
+		double temp=node_val;
 		for(int i=0;i<Par_iter.size();i++)
 			temp*=Par_iter[i]->get_nvalues();
 		offset+=temp;
@@ -403,7 +402,7 @@ public:
 			{
 				vector<string> temp_data=datavec[i];
 				temp_data[stoi(datavec[i][datavec.size()-2])]=missing_node_iter->get_values()[j];
-				float weight=missing_node_iter->get_CPT()[get_offset(stoi(datavec[i][datavec.size()-2]),temp_data)];
+				double weight=missing_node_iter->get_CPT()[get_offset(stoi(datavec[i][datavec.size()-2]),temp_data)];
 				for(int k=0;k<child_nodes_iter.size();k++)
 					weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],temp_data)];
 
