@@ -268,7 +268,8 @@ public:
 		while(119*1000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
 		{
 			updateRecords();
-			updateNetwork();writeNetwork();Alarm=read_network();
+			updateNetwork();
+			Alarm=read_network();
 		}
 	}
 
@@ -347,7 +348,6 @@ public:
 		}
 	}
 
-
 	int find_index(vector<string> vec, string sought)
 	{
 		for(int i=0;i<vec.size();i++)
@@ -412,13 +412,61 @@ public:
 				updated_data.push_back(temp_data);
 			}
 		}
-		datavec = updated_data;
 	}
-
 
 	void writeNetwork()
 	{
-		
+		string line;
+		int find=0;
+		ifstream outputFile("alarm.bif");
+		string temp;
+		string name;
+		vector<string> values;
+
+		if (!outputFile.is_open()) 
+		{
+        	cerr << "Failed to open files." << std::endl;
+        	return;
+    	}
+
+		while (!outputFile.eof())
+		{
+			stringstream ss;
+			getline (outputFile,line);
+				cout <<line<<endl;
+			ss.str(line);
+			ss>>temp;
+
+			if(temp.compare("variable")==0)
+			{
+				ss>>name;
+				getline (outputFile,line);
+				cout << line<<endl;
+			}
+			else if(temp.compare("probability")==0)
+			{
+				ss>>temp;
+				ss>>temp;
+				int index;
+				index=Alarm.get_index(temp);
+				getline (outputFile,line);
+				stringstream ss2;
+				ss2.str(line);
+				ss2>> temp;
+				cout << temp << " ";
+				ss2>> temp;
+				int j=0;
+				while(temp.compare(";")!=0)
+				{
+					cout << currCPT[index][j]<<" ";
+					j++;
+					ss2>>temp;
+				}
+				cout << temp << endl;
+			}
+		}
+		if(find==1)
+			outputFile.close();
 	}
 
 
