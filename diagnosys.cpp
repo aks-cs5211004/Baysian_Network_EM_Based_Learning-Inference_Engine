@@ -260,16 +260,14 @@ public:
 	{
 		auto exec_time_start= high_resolution_clock::now();
 		Alarm=read_network();
-		datavec.resize(0);
-		updated_data.resize(0);	
-		currCPT.resize(0);
 		readRecord();
-		updateNetwork();
-		while(119*1000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
-		{
-			updateRecords();
-			updateNetwork();
-		}
+		// updateNetwork();
+		// while(119*1000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
+		// {
+		// 	updateRecords();
+		// 	updateNetwork();
+		// }
+		// writeNetwork();
 	}
 
 	void readRecord()
@@ -279,6 +277,7 @@ public:
 		{
 			while (!datafile.eof())
 			{
+				
 				stringstream ss;
 				string data,component;
 				getline (datafile,data);
@@ -288,13 +287,13 @@ public:
 				vector <string> temp;
 				int missing_index;
 				int i=0;
-				while(component.compare("\n")!=0)
-				{
-					if(component.compare("\"?\"")==0)
+				
+				for(int i=0;i<Alarm.netSize();i++)
+				{	
+					if(component.compare("?")==0)
 						missing_index=i;
 					temp.push_back(component);
 					ss>>component;	
-					i++;
 				}
 				temp.push_back(to_string(missing_index));
 				temp.push_back(to_string(1));
@@ -303,7 +302,8 @@ public:
 			}
 
 			// Print read data
-			copy(datavec.begin(), datavec.end(), back_inserter(updated_data));  
+			// copy(datavec.begin(), datavec.end(), back_inserter(updated_data));  
+			updated_data=datavec;
 			for(int i=0;i<datavec.size();i++)
 			{
 				for(auto j: datavec[i])
