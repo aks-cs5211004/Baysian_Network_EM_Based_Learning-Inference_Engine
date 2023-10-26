@@ -264,12 +264,11 @@ public:
 		updated_data.resize(0);	
 		currCPT.resize(0);
 		readRecord();
-		updateNetwork();writeNetwork();Alarm=read_network();
+		updateNetwork();
 		while(119*1000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
 		{
 			updateRecords();
 			updateNetwork();
-			Alarm=read_network();
 		}
 	}
 
