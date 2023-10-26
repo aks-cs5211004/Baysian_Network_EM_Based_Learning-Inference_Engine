@@ -417,31 +417,31 @@ public:
 	void writeNetwork()
 	{
 		string line;
-		int find=0;
-		ifstream outputFile("alarm.bif");
+		ifstream inputFile("alarm.bif");
+		ofstream outputFile("solved_alarm.bif")
 		string temp;
 		string name;
 		vector<string> values;
 
-		if (!outputFile.is_open()) 
+		if (!inputFile.is_open()) 
 		{
         	cerr << "Failed to open files." << std::endl;
         	return;
     	}
 
-		while (!outputFile.eof())
+		while (!inputFile.eof())
 		{
 			stringstream ss;
-			getline (outputFile,line);
-				cout <<line<<endl;
+			getline (inputFile,line);
+				outputFile <<line<<endl;
 			ss.str(line);
 			ss>>temp;
 
 			if(temp.compare("variable")==0)
 			{
 				ss>>name;
-				getline (outputFile,line);
-				cout << line<<endl;
+				getline (inputFile,line);
+				outputFile << line <<endl;
 			}
 			else if(temp.compare("probability")==0)
 			{
@@ -449,24 +449,23 @@ public:
 				ss>>temp;
 				int index;
 				index=Alarm.get_index(temp);
-				getline (outputFile,line);
+				getline (inputFile,line);
 				stringstream ss2;
 				ss2.str(line);
 				ss2>> temp;
-				cout << temp << " ";
+				outputFile << temp << " ";
 				ss2>> temp;
 				int j=0;
 				while(temp.compare(";")!=0)
 				{
-					cout << currCPT[index][j]<<" ";
+					outputFile << currCPT[index][j]<<" ";
 					j++;
 					ss2>>temp;
 				}
-				cout << temp << endl;
+				outputFile << temp << endl;
 			}
 		}
-		if(find==1)
-			outputFile.close();
+		inputFile.close();
 	}
 
 
