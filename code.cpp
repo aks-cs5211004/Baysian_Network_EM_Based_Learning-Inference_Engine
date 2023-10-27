@@ -262,7 +262,7 @@ public:
 		readRecord();
 		updateNetwork();
 		int  i=1;
-		while(10*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
+		while(119*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
 		{
 			cout<<"Iter "<<i<<" Time "<<duration_cast<seconds>(high_resolution_clock::now()- exec_time_start).count()<<endl;
 			updateRecords();
@@ -271,6 +271,7 @@ public:
 			i++;
 		}
 		writeNetwork();
+		// cout<<get_offset(17,{"\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Low\"","\"High\"","\"Normal\"","\"Low\"","\"False\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","19","0.999162"})<<endl;
 	}
 
 	void readRecord()
@@ -295,7 +296,8 @@ public:
 				{	
 					if(component.compare("\"?\"")==0)
 						missing_index=i;
-					temp.push_back(component.substr(2,component.length()-4));
+					temp.push_back(component);
+
 					ss>>component;	
 				}
 				temp.push_back(to_string(missing_index));
@@ -332,11 +334,11 @@ public:
 				temp_CPT[get_offset(i,updated_data[k])]+=stod(updated_data[k].back());
 				// cout<<get_offset(i,updated_data[k])<<" ";
 				}
-			
-			for(int k=0;k<temp_CPT.size();k++){
-					cout<<temp_CPT[k]<<" ";
-			}
-			cout<<endl;
+			// cout<<"start"<<endl;
+			// for(int k=0;k<temp_CPT.size();k++){
+			// 		cout<<temp_CPT[k]<<" ";
+			// }
+			// cout<<endl;
 				
 			// Laplace Smoothing
 			for(int k=0; k<temp_CPT.size(); k++)
@@ -362,6 +364,8 @@ public:
 	{
 		for(int i=0;i<vec.size();i++)
 		{
+			// cout<<vec[i]<<endl;
+			// cout<<sought<<endl;
 			if(vec[i]==sought)
 				// cout<<(vec[i])<<endl;
 				return i;
@@ -371,21 +375,42 @@ public:
 
 	int get_offset(int index, vector<string> data)
 	{
+		// for(auto i: data){
+		// 	cout<<i<<" ";
+		// }
+		// cout<<endl;
 		auto node_iter=Alarm.get_nth_node(index);
 		int node_val;
-		if(data[index]!="?")
+		if(data[index]!="\"?\""){
 			node_val=find_index(node_iter->get_values(),data[index]);
+			// for(auto i:node_iter->get_values())
+			// 	cout<<i<<endl;
+			
+			// // cout<<data[index]<<endl;
+		}
 		else
 			node_val=0;
 		vector<string> Par_of_node=node_iter->get_Parents();
+		// for(auto i: Par_of_node){
+		// 	cout<<i<<" ";
+		// }
+		// cout<<endl;
+		// for(auto i: Par_of_node){
+		// 	// cout<<Alarm.get_index(i)<<" ";
+		// 	cout<<data[Alarm.get_index(i)]<<endl;
+		// }
+		// cout<<endl;
 		vector <list<Graph_Node>::iterator> Par_iter;
 		vector<int> par_val;
 		for(auto i:Par_of_node)
 		{
 			Par_iter.push_back(Alarm.search_node(i));
-			par_val.push_back(find_index(Alarm.search_node(i)->get_values(),data[index]));
+			par_val.push_back(find_index(Alarm.search_node(i)->get_values(),data[Alarm.get_index(i)]));
 		}
-		
+		// for(auto i: par_val){
+		// 	cout<<i<<" ";
+		// }
+		// cout<<endl;
 		int offset=0;
 		for(int i=0;i<Par_iter.size();i++)
 		{
@@ -404,6 +429,7 @@ public:
 	void updateRecords()
 	{
 		updated_data.clear();
+		vector<vector<string>> temp_data_vec=datavec;
 		for(int i=0;i<datavec.size();i++){
 			auto missing_node_iter=Alarm.get_nth_node(stoi(datavec[i][datavec[i].size()-2]));
 			vector <list<Graph_Node>::iterator> child_nodes_iter;
@@ -415,9 +441,10 @@ public:
 			{
 				vector<string> temp_data=datavec[i];
 				temp_data[stoi(datavec[i][datavec[i].size()-2])]=missing_node_iter->get_values()[j];
-				double weight=missing_node_iter->get_CPT()[get_offset(stoi(datavec[i][datavec[i].size()-2]),temp_data)];
+				temp_data_vec[i][stoi(temp_data_vec[i][temp_data_vec[i].size()-2])]=missing_node_iter->get_values()[j];
+				double weight=missing_node_iter->get_CPT()[get_offset(stoi(temp_data_vec[i][temp_data_vec[i].size()-2]),temp_data_vec[i])];
 				for(int k=0;k<child_nodes_iter.size();k++)
-					weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],temp_data)];
+					weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],temp_data_vec[i])];
 
 				temp_data[temp_data.size()-1]=to_string(weight);
 				updated_data.push_back(temp_data);
@@ -426,12 +453,12 @@ public:
 
 
 		// cout<<updated_data.size()<<endl;
-		for(int i=0;i<updated_data.size();i++){
-				for(int j=0;j<updated_data[i].size();j++){
-						// cout<<updated_data[i][j]<<" ";
-				}
-				// cout<<endl;
-		}
+		// for(int i=0;i<updated_data.size();i++){
+		// 		for(int j=0;j<updated_data[i].size();j++){
+		// 				cout<<updated_data[i][j]<<" ";
+		// 		}
+		// 		cout<<endl;
+		// }
 	}
 
 	void writeNetwork()
