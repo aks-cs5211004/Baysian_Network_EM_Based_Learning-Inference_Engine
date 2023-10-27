@@ -264,17 +264,16 @@ public:
 		readRecord();
 		updateNetwork();
 		int  i=1;
-		while(11*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
+		while(119*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
 		{
 			cout<<"Iter "<<i<<" Time "<<duration_cast<seconds>(high_resolution_clock::now()- exec_time_start).count()<<endl;
 			updateRecords();
-
+			cout<<" Time Mid "<<duration_cast<seconds>(high_resolution_clock::now()- exec_time_start).count()<<endl;
 			updateNetwork();
 			i++;
 		}
 		finaliseCPT();
 		writeNetwork();
-		// cout<<get_offset(17,{"\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Low\"","\"High\"","\"Normal\"","\"Low\"","\"False\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","19","0.999162"})<<endl;
 	}
 
 	void readRecord()
@@ -309,21 +308,12 @@ public:
 				ss.clear();
 			}
 
-			// Print read data
-			// copy(datavec.begin(), datavec.end(), back_inserter(updated_data));  
 			updated_data=datavec;
-			// cout<<updated_data.size()<<endl;
-			for(int i=0;i<updated_data.size()/100;i++){
-				for(int j=0;j<updated_data[i].size();j++){
-						// cout<<updated_data[i][j]<<" ";
-				}
-				// cout<<endl;
-		}
+
 		}
 		else
 			cout<<"Record File not found"<<endl;
 	}
-
 	void updateNetwork()
 	{
 		currCPT.clear();
@@ -335,18 +325,16 @@ public:
 			// Count
 			for(int k=0; k<updated_data.size(); k++){
 				temp_CPT[get_offset(i,updated_data[k])]+=stod(updated_data[k].back());
-				// cout<<get_offset(i,updated_data[k])<<" ";
 				}
-			// cout<<"start"<<endl;
-			// for(int k=0;k<temp_CPT.size();k++){
-			// 		cout<<temp_CPT[k]<<" ";
-			// }
-			// cout<<endl;
 				
 			// Laplace Smoothing
-			for(int k=0; k<temp_CPT.size(); k++)
-				temp_CPT[k] += 1;
 
+			for(int k=0; k<temp_CPT.size(); k++){
+				// std::cout<<temp_CPT[k]<<" ";
+				if(temp_CPT[k]<0.001)
+			 		temp_CPT[k] +=0.0000001;
+			}
+			// cout<<endl;
 			// Calc Norm coeff
 			int norm_size = (node->get_CPT().size())/(node->get_values().size());
 			vector<double> norm_coeff(norm_size,0);
@@ -354,8 +342,15 @@ public:
 				norm_coeff[k%norm_size] += temp_CPT[k];
 
 			// Normalize
-			for(int k=0; k<temp_CPT.size(); k++)
-				temp_CPT[k] = temp_CPT[k]/(norm_coeff[k%norm_size]);
+			for(int k=0; k<temp_CPT.size(); k++){
+				temp_CPT[k] =(double)temp_CPT[k]/(norm_coeff[k%norm_size]);
+				if(temp_CPT[k]<0.01){
+					cout<<"flag"<<endl;
+					temp_CPT[k]+=0.01;
+				}
+				// cout<<temp_CPT[k]<<" ";
+				}
+			// cout<<endl;
 
 			// Set CPT
 			node->set_CPT(temp_CPT);
@@ -367,10 +362,7 @@ public:
 	{
 		for(int i=0;i<vec.size();i++)
 		{
-			// cout<<vec[i]<<endl;
-			// cout<<sought<<endl;
 			if(vec[i]==sought)
-				// cout<<(vec[i])<<endl;
 				return i;
 		}
 		return 0;
@@ -378,31 +370,14 @@ public:
 
 	int get_offset(int index, vector<string> data)
 	{
-		// for(auto i: data){
-		// 	cout<<i<<" ";
-		// }
-		// cout<<endl;
 		auto node_iter=Alarm.get_nth_node(index);
 		int node_val;
 		if(data[index]!="\"?\""){
 			node_val=find_index(node_iter->get_values(),data[index]);
-			// for(auto i:node_iter->get_values())
-			// 	cout<<i<<endl;
-			
-			// // cout<<data[index]<<endl;
 		}
 		else
-			node_val=0;
+			node_val=1;
 		vector<string> Par_of_node=node_iter->get_Parents();
-		// for(auto i: Par_of_node){
-		// 	cout<<i<<" ";
-		// }
-		// cout<<endl;
-		// for(auto i: Par_of_node){
-		// 	// cout<<Alarm.get_index(i)<<" ";
-		// 	cout<<data[Alarm.get_index(i)]<<endl;
-		// }
-		// cout<<endl;
 		vector <list<Graph_Node>::iterator> Par_iter;
 		vector<int> par_val;
 		for(auto i:Par_of_node)
@@ -410,10 +385,6 @@ public:
 			Par_iter.push_back(Alarm.search_node(i));
 			par_val.push_back(find_index(Alarm.search_node(i)->get_values(),data[Alarm.get_index(i)]));
 		}
-		// for(auto i: par_val){
-		// 	cout<<i<<" ";
-		// }
-		// cout<<endl;
 		int offset=0;
 		for(int i=0;i<Par_iter.size();i++)
 		{
@@ -453,15 +424,6 @@ public:
 				updated_data.push_back(temp_data);
 			}
 		}
-
-
-		// cout<<updated_data.size()<<endl;
-		// for(int i=0;i<updated_data.size();i++){
-		// 		for(int j=0;j<updated_data[i].size();j++){
-		// 				cout<<updated_data[i][j]<<" ";
-		// 		}
-		// 		cout<<endl;
-		// }
 	}
 
 	std::vector<std::vector<double>> roundVectorTo4DecimalPlaces(const std::vector<std::vector<double>>& inputVector) {
@@ -470,7 +432,8 @@ public:
 		for (const std::vector<double>& vector : inputVector) {
 			std::vector<double> roundedValues;
 			for (double value : vector) {
-				roundedValues.push_back(std::round(value * 10000.0) / 10000.0);
+				double push=(double)trunc(value * 10000.0) / 10000.0;
+				roundedValues.push_back(push);
 			}
 			roundedVector.push_back(roundedValues);
 		}
@@ -495,7 +458,7 @@ public:
         	cerr << "Failed to open files." << std::endl;
         	return;
     	}
-
+		int k=0;
 		while (!inputFile.eof())
 		{
 			stringstream ss;
@@ -512,6 +475,7 @@ public:
 			}
 			else if(temp.compare("probability")==0)
 			{
+				k++;
 				ss>>temp;
 				ss>>temp;
 				int index;
@@ -529,10 +493,15 @@ public:
 					j++;
 					ss2>>temp;
 				}
+				// if(k==datavec.size()-1)
+				// outputFile << temp;
+				// else
 				outputFile << temp << endl;
 			}
 		}
+
 		inputFile.close();
+		outputFile.close();
 	}
 
 
