@@ -244,6 +244,8 @@ network read_network()
   	return Alarm;
 }
 
+
+
 class Solve
 {
 
@@ -262,7 +264,7 @@ public:
 		readRecord();
 		updateNetwork();
 		int  i=1;
-		while(119*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
+		while(11*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
 		{
 			cout<<"Iter "<<i<<" Time "<<duration_cast<seconds>(high_resolution_clock::now()- exec_time_start).count()<<endl;
 			updateRecords();
@@ -270,6 +272,7 @@ public:
 			updateNetwork();
 			i++;
 		}
+		finaliseCPT();
 		writeNetwork();
 		// cout<<get_offset(17,{"\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Low\"","\"High\"","\"Normal\"","\"Low\"","\"False\"","\"False\"","\"Normal\"","\"False\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","\"Normal\"","19","0.999162"})<<endl;
 	}
@@ -461,6 +464,23 @@ public:
 		// }
 	}
 
+	std::vector<std::vector<double>> roundVectorTo4DecimalPlaces(const std::vector<std::vector<double>>& inputVector) {
+		std::vector<std::vector<double>> roundedVector;
+
+		for (const std::vector<double>& vector : inputVector) {
+			std::vector<double> roundedValues;
+			for (double value : vector) {
+				roundedValues.push_back(std::round(value * 10000.0) / 10000.0);
+			}
+			roundedVector.push_back(roundedValues);
+		}
+
+		return roundedVector;
+	}
+
+	void finaliseCPT(){
+		currCPT=roundVectorTo4DecimalPlaces(currCPT);
+	}
 	void writeNetwork()
 	{
 		string line;
