@@ -250,8 +250,10 @@ class Solve
 {
 
 private:
-	vector <vector<string>> datavec;
-	vector <vector<string>> updated_data;
+	// vector <vector<string>> datavec;
+	// vector <vector<string>> updated_data;
+	map <vector<string>,double> datavec;
+	map <vector<string>,double> updated_data;
 	vector <vector<double>> currCPT;
 	network Alarm;
 
@@ -303,8 +305,7 @@ public:
 					ss>>component;	
 				}
 				temp.push_back(to_string(missing_index));
-				temp.push_back(to_string(1));
-				datavec.push_back(temp);
+				datavec[temp]=1;
 				ss.clear();
 			}
 
@@ -324,28 +325,16 @@ public:
 			vector<double> temp_CPT(node->get_CPT().size(),0);
 
 			// Count
-			for(int k=0; k<updated_data.size(); k++){
-				temp_CPT[get_offset(i,updated_data[k])]+=stod(updated_data[k].back());
+			for(auto elem:updated_data){
+				temp_CPT[get_offset(i,elem.first)]+=elem.second;
 				}
 				
 			// Laplace Smoothing
-
-			for(int k=0; k<temp_CPT.size(); k++){
+            for(int k=0; k<temp_CPT.size(); k++){
 				// std::cout<<temp_CPT[k]<<" ";
-				if(temp_CPT[k]<0.001)
-			 		temp_CPT[k] +=0.0000001;
+			 		temp_CPT[k] +=0.0001;
 			}
-			cout<<endl;
-			// double min_no=0.1;
-            // for(int k=0; k<temp_CPT.size(); k++){
-            //     if(temp_CPT[k]<min_no && temp_CPT[k]!=0)
-            //         min_no=temp_CPT[k];
-			// }
-
-			// for(int k=0; k<temp_CPT.size(); k++){
-			//  	temp_CPT[k] +=min_no;
-			// }
-
+			// cout<<endl;
 			// Calc Norm coeff
 			int norm_size = (node->get_CPT().size())/(node->get_values().size());
 			vector<double> norm_coeff(norm_size,0);
@@ -362,7 +351,7 @@ public:
 					temp_CPT[k]-=0.01;
 				}
 			// cout<<endl;
-	}
+			}
 			// Set CPT
 			node->set_CPT(temp_CPT);
 			currCPT.push_back(temp_CPT);
@@ -414,25 +403,20 @@ public:
 	void updateRecords()
 	{
 		updated_data.clear();
-		vector<vector<string>> temp_data_vec=datavec;
-		for(int i=0;i<datavec.size();i++){
-			auto missing_node_iter=Alarm.get_nth_node(stoi(datavec[i][datavec[i].size()-2]));
+		for(auto elem:datavec){
+			auto missing_node_iter=Alarm.get_nth_node(stoi(elem.first[elem.first.size()-1]));
 			vector <list<Graph_Node>::iterator> child_nodes_iter;
 			vector<int> child_class;
 			for(auto k: missing_node_iter->get_children())
 				child_nodes_iter.push_back(Alarm.get_nth_node(k));
-
 			for(int j=0;j<missing_node_iter->get_values().size();j++)
 			{
-				vector<string> temp_data=datavec[i];
-				temp_data[stoi(datavec[i][datavec[i].size()-2])]=missing_node_iter->get_values()[j];
-				temp_data_vec[i][stoi(temp_data_vec[i][temp_data_vec[i].size()-2])]=missing_node_iter->get_values()[j];
-				double weight=missing_node_iter->get_CPT()[get_offset(stoi(temp_data_vec[i][temp_data_vec[i].size()-2]),temp_data_vec[i])];
+				vector<string> temp_data=elem.first;
+				temp_data[stoi(elem.first[elem.first.size()-1])]=missing_node_iter->get_values()[j];
+				double weight=missing_node_iter->get_CPT()[get_offset(stoi(elem.first[elem.first.size()-1]),temp_data)];
 				for(int k=0;k<child_nodes_iter.size();k++)
-					weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],temp_data_vec[i])];
-
-				temp_data[temp_data.size()-1]=to_string(weight);
-				updated_data.push_back(temp_data);
+					weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],temp_data)];
+				updated_data[temp_data]=weight;
 			}
 		}
 	}
