@@ -330,9 +330,9 @@ public:
 				}
 				
 			// Laplace Smoothing
-            for(int k=0; k<temp_CPT.size(); k++){
-				// std::cout<<temp_CPT[k]<<" ";
-			 		temp_CPT[k] +=0.0001;
+
+			for(int k=0; k<temp_CPT.size(); k++){
+			 	temp_CPT[k] +=0.0001;
 			}
 			// cout<<endl;
 			// Calc Norm coeff

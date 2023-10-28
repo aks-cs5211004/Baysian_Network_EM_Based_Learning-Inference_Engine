@@ -332,10 +332,10 @@ public:
 
 			for(int k=0; k<temp_CPT.size(); k++){
 				// std::cout<<temp_CPT[k]<<" ";
-				if(temp_CPT[k]<0.001)
-			 		temp_CPT[k] +=0.0000001;
+				// if(temp_CPT[k]<0.001)
+			 		temp_CPT[k] +=0.0001;
 			}
-			cout<<endl;
+			// cout<<endl;
 			// double min_no=0.1;
             // for(int k=0; k<temp_CPT.size(); k++){
             //     if(temp_CPT[k]<min_no && temp_CPT[k]!=0)
