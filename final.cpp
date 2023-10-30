@@ -16,6 +16,7 @@
 #include <limits.h>
 #include <iomanip>
 #include <map>
+#include <quadmath.h>
 using namespace std::chrono;
 using namespace std;
 
@@ -28,7 +29,7 @@ private:
 	vector<string> Parents; // Parents of a particular node- note these are names of parents
 	int nvalues;  // Number of categories a variable represented by this node can take
 	vector<string> values; // Categories of possible values
-	vector<double> CPT; // conditional probability table as a 1-d array . Look for BIF format to understand its meaning
+	vector<__float128> CPT; // conditional probability table as a 1-d array . Look for BIF format to understand its meaning
 
 public:
 	// Constructor- a node is initialised with its name and its categories
@@ -54,7 +55,7 @@ public:
 		return Parents;
 	}
 
-	vector<double> get_CPT()
+	vector<__float128> get_CPT()
 	{
 		return CPT;
 	}
@@ -69,7 +70,7 @@ public:
 		return values;
 	}
 
-	void set_CPT(vector<double> new_CPT)
+	void set_CPT(vector<__float128> new_CPT)
 	{
 		CPT.clear();
 		CPT=new_CPT;
@@ -222,7 +223,7 @@ network read_network()
      		    ss2>> temp;
      		    ss2>> temp;
 
-     		    vector<double> curr_CPT;
+     		    vector<__float128> curr_CPT;
                 string::size_type sz;
      		    while(temp.compare(";")!=0)
      		    {
@@ -250,9 +251,10 @@ class Solve
 {
 
 private:
-	vector <vector<string>> datavec;
-	vector <vector<string>> updated_data;
-	vector <vector<double>> currCPT;
+	vector <tuple<vector<string>,int,__float128>> datavec;
+	vector <tuple<vector<string>,int,__float128>> updated_data;
+	vector <vector<__float128>> currCPT;
+	vector <vector<double>> writeCPT;
 	network Alarm;
 
 public:
@@ -264,7 +266,7 @@ public:
 		readRecord();
 		updateNetwork();
 		int  i=1;
-		while(110*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
+		while(100*1000000>duration_cast<microseconds>(high_resolution_clock::now()- exec_time_start).count())
 		{
 			cout<<"Iter "<<i<<" Time "<<duration_cast<seconds>(high_resolution_clock::now()- exec_time_start).count()<<endl;
 			updateRecords();
@@ -302,9 +304,7 @@ public:
 
 					ss>>component;	
 				}
-				temp.push_back(to_string(missing_index));
-				temp.push_back(to_string(1));
-				datavec.push_back(temp);
+				datavec.push_back({temp,missing_index,1});
 				ss.clear();
 			}
 
@@ -321,11 +321,11 @@ public:
 		for(int i=0;i<Alarm.netSize();i++)
 		{
 			auto node=Alarm.get_nth_node(i);
-			vector<double> temp_CPT(node->get_CPT().size(),0);
+			vector<__float128> temp_CPT(node->get_CPT().size(),0);
 
 			// Count
 			for(int k=0; k<updated_data.size(); k++){
-				temp_CPT[get_offset(i,updated_data[k])]+=stod(updated_data[k].back());
+				temp_CPT[get_offset(i,get<0>(updated_data[k]))]+=get<2>(updated_data[k]);
 				}
 				
 			// Laplace Smoothing
@@ -333,18 +333,18 @@ public:
 			for(int k=0; k<temp_CPT.size(); k++){
 				// std::cout<<temp_CPT[k]<<" ";
 				// if(temp_CPT[k]<0.001)
-			 		temp_CPT[k] +=0.003;
+			 		temp_CPT[k] +=0.000000000000000000000000000000000000000000000001;
 			}
 			// Calc Norm coeff
 			int norm_size = (node->get_CPT().size())/(node->get_values().size());
-			vector<double> norm_coeff(norm_size,0);
+			vector<__float128> norm_coeff(norm_size,0);
 			for(int k=0; k<temp_CPT.size(); k++)
-				norm_coeff[k%norm_size] += temp_CPT[k];
+				norm_coeff[(int)(k%norm_size)] += temp_CPT[k];
 
 			// Normalize
 			for(int k=0; k<temp_CPT.size(); k++){
-				temp_CPT[k] =(double)temp_CPT[k]/(norm_coeff[k%norm_size]);
-	}
+				temp_CPT[k] =(__float128)(temp_CPT[k])/(norm_coeff[(int)(k%norm_size)]);
+			}
 			// Set CPT
 			node->set_CPT(temp_CPT);
 			currCPT.push_back(temp_CPT);
@@ -386,7 +386,7 @@ public:
 				temp*=Par_iter[j]->get_nvalues();
 			offset+=temp;
 		}
-		double temp=node_val;
+		__float128 temp=node_val;
 		for(int i=0;i<Par_iter.size();i++)
 			temp*=Par_iter[i]->get_nvalues();
 		offset+=temp;
@@ -396,9 +396,9 @@ public:
 	void updateRecords()
 	{
 		updated_data.clear();
-		vector<vector<string>> temp_data_vec=datavec;
+		vector <tuple<vector<string>,int,__float128>> temp_data_vec=datavec;
 		for(int i=0;i<datavec.size();i++){
-			auto missing_node_iter=Alarm.get_nth_node(stoi(datavec[i][datavec[i].size()-2]));
+			auto missing_node_iter=Alarm.get_nth_node(get<1>(datavec[i]));
 			vector <list<Graph_Node>::iterator> child_nodes_iter;
 			vector<int> child_class;
 			for(auto k: missing_node_iter->get_children())
@@ -406,20 +406,19 @@ public:
 
 			for(int j=0;j<missing_node_iter->get_values().size();j++)
 			{
-				vector<string> temp_data=datavec[i];
-				temp_data[stoi(datavec[i][datavec[i].size()-2])]=missing_node_iter->get_values()[j];
-				temp_data_vec[i][stoi(temp_data_vec[i][temp_data_vec[i].size()-2])]=missing_node_iter->get_values()[j];
-				double weight=missing_node_iter->get_CPT()[get_offset(stoi(temp_data_vec[i][temp_data_vec[i].size()-2]),temp_data_vec[i])];
+				vector<string> temp_data=get<0>(datavec[i]);
+				temp_data[get<1>(datavec[i])]=missing_node_iter->get_values()[j];
+				get<0>(temp_data_vec[i])[get<1>(temp_data_vec[i])]=missing_node_iter->get_values()[j];
+				__float128 weight=missing_node_iter->get_CPT()[get_offset(get<1>(temp_data_vec[i]),get<0>(temp_data_vec[i]))];
 				for(int k=0;k<child_nodes_iter.size();k++)
-					weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],temp_data_vec[i])];
+					weight*=child_nodes_iter[k]->get_CPT()[get_offset(missing_node_iter->get_children()[k],get<0>(temp_data_vec[i]))];
 
-				temp_data[temp_data.size()-1]=to_string(weight);
-				updated_data.push_back(temp_data);
+				updated_data.push_back({temp_data,get<1>(temp_data_vec[i]),weight});
 			}
 		}
 	}
 
-	std::vector<std::vector<double>> roundCPT(const std::vector<std::vector<double>>& inputVector) 
+	std::vector<std::vector<double>> roundCPT(const std::vector<std::vector<__float128>>& inputVector) 
 	{
 		std::vector<std::vector<double>> roundedVector;
 
@@ -428,27 +427,17 @@ public:
 			auto node=Alarm.get_nth_node(i);
 			int norm_size = (node->get_CPT().size())/(node->get_values().size());
 			std::vector<double> roundedValues(node->get_CPT().size(),0);
-			
-			cout<<norm_size<<endl;
-			for (int j =0;j<norm_size;j++) 
+			for (int j =0;j<norm_size;j++)
 			{
-				for(int k=0;k<node->get_values().size()-1;k++){
-					double push=(double)trunc(inputVector[i][j+k*norm_size] * 10000.0) / 10000.0;
-					if(push==0){
-						push+=0.0001;
+				for(int k=0;k<node->get_values().size();k++){
+					double push=(double)roundf(inputVector[i][j+k*norm_size] * 10000.0) / 10000.0;
+					if(push==1){
+						push-=(node->get_values().size()-1)*0.01;
+					}
+					else if(push==0){
+						push+=0.01;
 					}
 					roundedValues[j+k*norm_size]=push;
-				}
-			}
-			for (int j =0;j<norm_size;j++) 
-			{
-				double rems=0;
-				for(int k=0;k<node->get_values().size()-1;k++){
-					rems+=roundedValues[j+k*norm_size];
-				}
-				roundedValues[j+(node->get_values().size()-1)*norm_size]=(double)trunc((1-rems) * 10000.0) / 10000.0;
-				if(roundedValues[j+(node->get_values().size()-1)*norm_size]<=0){
-					roundedValues[j+(node->get_values().size()-1)*norm_size]+=0.0001;
 				}
 			}
 			roundedVector.push_back(roundedValues);
@@ -458,7 +447,7 @@ public:
 
 	void finaliseCPT()
 	{
-		currCPT=roundCPT(currCPT);
+	 writeCPT=roundCPT(currCPT);
 	}
 
 	void writeNetwork()
@@ -507,7 +496,7 @@ public:
 				int j=0;
 				while(temp.compare(";")!=0)
 				{
-					outputFile << currCPT[index][j]<<" ";
+					outputFile << writeCPT[index][j]<<" ";
 					j++;
 					ss2>>temp;
 				}
